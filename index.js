@@ -62,10 +62,22 @@ app.post('/api/basic/check', async (req, res) => {
             try {
                 const response = await fetch(`https://xchecker.cc/api.php?cc=${encodeURIComponent(card)}`);
                 const data = await response.json();
+                
+                // Limpiamos el mensaje de donación
+                let details = data.details;
+                if (details && details.includes('Please consider')) {
+                    details = details.split('Please consider')[0].trim();
+                }
+                
+                // Si el mensaje está vacío después de limpiar
+                if (!details) {
+                    details = data.status === 'Live' ? 'Card Approved' : 'Card Declined';
+                }
+
                 results.push({
                     card,
                     status: data.status,
-                    message: `${data.status} | ${data.details || 'Card Declined'} | .gg/aeolous`
+                    message: `${data.status} | ${details} | .gg/aeolous`
                 });
             } catch (error) {
                 results.push({
