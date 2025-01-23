@@ -1,23 +1,46 @@
 {
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/api/:path*"
+      "src": "index.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/gen",
-      "destination": "/gen.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/chk.html"
+      "src": "public/**",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/basic/check",
       "methods": ["POST"],
-      "dest": "/api/basic/check"
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/pro/check",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/luhn/check",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/$1"
+    },
+    {
+      "src": "/gen",
+      "dest": "/public/gen.html"
+    },
+    {
+      "src": "/(styles\\.min\\.css|script\\.min\\.js)",
+      "dest": "/public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/chk.html"
     }
   ]
 }
