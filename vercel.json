@@ -31,7 +31,7 @@
       "dest": "/api/$1"
     },
     {
-      "src": "/gen",
+      "src": "/gen(\\.html)?",
       "dest": "/public/gen.html"
     },
     {
