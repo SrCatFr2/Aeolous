@@ -57,37 +57,24 @@ app.post('/api/basic/check', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid request' });
         }
 
-        const results = [];
-        for (const card of cards) {
+        const results = await Promise.all(cards.map(async (card) => {
             try {
                 const response = await fetch(`https://xchecker.cc/api.php?cc=${encodeURIComponent(card)}`);
                 const data = await response.json();
-                
-                // Limpiamos el mensaje de donación
-                let details = data.details;
-                if (details && details.includes('Please consider')) {
-                    details = details.split('Please consider')[0].trim();
-                }
-                
-                // Si el mensaje está vacío después de limpiar
-                if (!details) {
-                    details = data.status === 'Live' ? 'Card Approved' : 'Card Declined';
-                }
-
-                results.push({
+                await new Promise(r => setTimeout(r, 200));
+                return {
                     card,
                     status: data.status,
-                    message: `${data.status} | ${details} | .gg/aeolous`
-                });
+                    message: `${data.status} | ${(data.details || 'Card Declined').replace(/Please consider making a donation[\s\S]*?bc1[^\s]+/gi, '')} | .gg/aeolous`
+                };
             } catch (error) {
-                results.push({
+                return {
                     card,
                     status: 'Dead',
                     message: 'Card Declined | .gg/aeolous'
-                });
+                };
             }
-            await new Promise(r => setTimeout(r, 2000));
-        }
+        }));
 
         res.json({ success: true, results });
 
@@ -109,36 +96,108 @@ app.post('/api/pro/check', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid request' });
         }
 
-        const results = [];
-        for (const card of cards) {
+        const results = await Promise.all(cards.map(async (card) => {
             try {
+                // Normalizar formato de fecha
+                const [cc, month, year, cvv] = card.split('|');
+                const fullYear = year.length === 2 ? '20' + year : year;
+                const normalizedCard = `${cc}|${month}|${fullYear}|${cvv}`;
+
+                console.log('Sending request to API:', normalizedCard);
+
+                console.log('Request details:', {
+                    method: 'POST',
+                    url: 'https://api.chkr.cc/',
+                    headers: {
+                        'authority': 'api.chkr.cc',
+                        'Accept': 'application/json, text/javascript, */*; q=0.01',
+                        'Accept-Language': 'es,en-US;q=0.9,en;q=0.8',
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.57',
+                        'Origin': 'https://chkr.cc',
+                        'Referer': 'https://chkr.cc/',
+                        'sec-ch-ua': '"Chromium";v="118", "Microsoft Edge";v="118", "Not=A?Brand";v="99"',
+                        'sec-ch-ua-mobile': '?0',
+                        'sec-ch-ua-platform': '"Windows"',
+                        'sec-fetch-dest': 'empty',
+                        'sec-fetch-mode': 'cors',
+                        'sec-fetch-site': 'cross-site'
+                    },
+                    body: new URLSearchParams({
+                        'data': normalizedCard,
+                        'charge': false,
+                        'type': 'event',
+                        'payload[website]': '38220560-ca8a-4a14-b042-5525d1071447',
+                        'payload[hostname]': 'chkr.cc',
+                        'payload[screen]': '1920x1080',
+                        'payload[language]': 'es'
+                    }).toString()
+                });
+
                 const response = await fetch('https://api.chkr.cc/', {
                     method: 'POST',
                     headers: {
-                        'Accept': '*/*',
-                        'Content-Type': 'application/x-www-form-urlencoded'
+                        'authority': 'api.chkr.cc',
+                        'Accept': 'application/json, text/javascript, */*; q=0.01',
+                        'Accept-Language': 'es,en-US;q=0.9,en;q=0.8',
+                        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36 Edg/118.0.2088.57',
+                        'Origin': 'https://chkr.cc',
+                        'Referer': 'https://chkr.cc/',
+                        'sec-ch-ua': '"Chromium";v="118", "Microsoft Edge";v="118", "Not=A?Brand";v="99"',
+                        'sec-ch-ua-mobile': '?0',
+                        'sec-ch-ua-platform': '"Windows"',
+                        'sec-fetch-dest': 'empty',
+                        'sec-fetch-mode': 'cors',
+                        'sec-fetch-site': 'cross-site'
                     },
                     body: new URLSearchParams({
-                        data: card,
-                        charge: 'false'
-                    })
+                        'data': normalizedCard,
+                        'charge': false,
+                        'type': 'event',
+                        'payload[website]': '38220560-ca8a-4a14-b042-5525d1071447',
+                        'payload[hostname]': 'chkr.cc',
+                        'payload[screen]': '1920x1080',
+                        'payload[language]': 'es'
+                    }).toString()
                 });
 
-                const data = await response.json();
-                results.push({
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const textResponse = await response.text();
+                console.log('Raw API Response:', textResponse);
+
+                let data;
+                try {
+                    data = JSON.parse(textResponse);
+                } catch (e) {
+                    console.error('JSON Parse Error:', e);
+                    throw new Error('Invalid JSON response');
+                }
+
+                console.log('Parsed API Response:', data);
+
+                await new Promise(r => setTimeout(r, 300));
+                
+                // Verificación más detallada del status
+                const isLive = data.code === 1;
+                
+                return {
                     card,
-                    status: data.code === 1 ? 'Live' : 'Dead',
-                    message: `${data.status} | ${data.message || 'Card Declined'} | .gg/aeolous`
-                });
+                    status: isLive ? 'Live' : 'Dead',
+                    message: `${data.status} | ${(data.message || 'Card Declined').replace(/\[GATE_01@chkr\.cc\]/g, '')} | Bank: ${data.card?.bank || 'N/A'} | Type: ${data.card?.type || 'N/A'} | Country: ${data.card?.country?.name || 'N/A'} | .gg/aeolous`
+                };
             } catch (error) {
-                results.push({
+                console.error('Card check error:', error);
+                return {
                     card,
                     status: 'Dead',
                     message: 'Card Declined | .gg/aeolous'
-                });
+                };
             }
-            await new Promise(r => setTimeout(r, 3000));
-        }
+        }));
 
         res.json({ success: true, results });
 
