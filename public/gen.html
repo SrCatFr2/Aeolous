@@ -408,84 +408,123 @@
         </div>
 
         <script>
-   // Sistema avanzado de generación de CCs
-function generateValidCC(base) {
-    // Limpieza y validación del BIN/base
-    let card = base.toLowerCase().replace(/[^0-9x]/g, '');
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+
+function initCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+window.addEventListener('resize', initCanvas);
+initCanvas();
+
+const particles = Array.from({length: 50}, () => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: Math.random() * 2 + 1,
+    speedX: Math.random() * 2 - 1,
+    speedY: Math.random() * 2 - 1,
+    color: `rgba(79, 70, 229, ${Math.random() * 0.3})`
+}));
+
+function animate() {
+    requestAnimationFrame(animate);
+    ctx.fillStyle = 'rgba(11, 15, 26, 0.1)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+        p.x += p.speedX;
+        p.y += p.speedY;
+        if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+        if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+    });
+}
+
+animate();
+
+function generateLuhn(partial) {
+    var sum = 0;
+    var len = partial.length;
+    var parity = (len + 1) % 2;
     
-    // Primero completamos los dígitos faltantes o reemplazamos las X
+    for (var i = len - 1; i >= 0; i--) {
+        var digit = parseInt(partial[i], 10);
+        
+        if (i % 2 === parity) {
+            digit *= 2;
+            if (digit > 9) {
+                digit -= 9;
+            }
+        }
+        sum += digit;
+    }
+    
+    var checksum = (10 - (sum % 10)) % 10;
+    return checksum;
+}
+
+function generateCard(base) {
+    let card = base.toLowerCase();
+    
     while (card.length < 16) {
         if (card.includes('x')) {
-            card = card.replace('x', Math.floor(Math.random() * 10).toString());
+            card = card.replace('x', Math.floor(Math.random() * 10));
         } else {
-            card += Math.floor(Math.random() * 10).toString();
+            card += Math.floor(Math.random() * 10);
         }
     }
-
-    // Algoritmo Luhn mejorado
-    let sum = 0;
-    let isEven = false;
     
-    // Primero calculamos la suma sin el último dígito
-    for (let i = card.length - 2; i >= 0; i--) {
-        let digit = parseInt(card[i]);
+    const partial = card.slice(0, -1);
+    const checkDigit = generateLuhn(partial);
+    return partial + checkDigit;
+}
 
+function validateCard(cardNumber) {
+    var sum = 0;
+    var isEven = false;
+    
+    for (var i = cardNumber.length - 1; i >= 0; i--) {
+        var digit = parseInt(cardNumber[i], 10);
+        
         if (isEven) {
             digit *= 2;
             if (digit > 9) {
                 digit -= 9;
             }
         }
-
+        
         sum += digit;
         isEven = !isEven;
     }
-
-    // Calculamos el dígito de verificación
-    const checkDigit = (10 - (sum % 10)) % 10;
     
-    // Retornamos la tarjeta con el dígito de verificación
-    return card.slice(0, -1) + checkDigit;
+    return sum % 10 === 0;
 }
 
-// Funciones de utilidad mejoradas
 function getRandomMonth() {
     return String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
 }
 
 function getRandomYear() {
-    return String(2024 + Math.floor(Math.random() * 7)); // 2024-2030
+    return String(2024 + Math.floor(Math.random() * 7));
 }
 
 function getRandomCVV() {
-    // CVV inteligente basado en el tipo de tarjeta
-    const length = 3; // Amex = 4, otros = 3
-    return Array.from({length}, () => Math.floor(Math.random() * 10)).join('');
+    return String(Math.floor(Math.random() * 900) + 100);
 }
 
-function validateBIN(bin) {
-    if (!bin || bin.length < 6) return false;
-    
-    // Validación de emisores conocidos
-    const firstDigit = bin[0];
-    const validPrefixes = {
-        '3': ['7', '4', '5', '9'], // Amex, etc
-        '4': [], // Visa
-        '5': ['1', '2', '3', '4', '5'], // Mastercard
-        '6': [], // Discover
-    };
-
-    if (!validPrefixes.hasOwnProperty(firstDigit)) {
-        return firstDigit.toLowerCase() === 'x';
-    }
-
-    if (validPrefixes[firstDigit].length > 0) {
-        const secondDigit = bin[1];
-        if (secondDigit.toLowerCase() === 'x') return true;
-        return validPrefixes[firstDigit].includes(secondDigit);
-    }
-
-    return true;
+function showNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'notification';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${message}</span>
+    `;
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
 }
 
 function generateCards() {
@@ -495,22 +534,21 @@ function generateCards() {
     const quantity = parseInt(document.getElementById('quantity').value);
     const results = document.getElementById('results');
 
-    if (!validateBIN(base)) {
-        showNotification('BIN inválido o no soportado', 'error');
+    if (!base) {
+        alert('Ingresa un BIN o base');
         return;
     }
 
     results.innerHTML = '';
-    const generatedCards = new Set(); // Evitar duplicados
+    const generatedCards = new Set();
 
     for (let i = 0; i < quantity; i++) {
         let cardNumber;
         do {
-            cardNumber = generateValidCC(base);
+            cardNumber = generateCard(base);
         } while (generatedCards.has(cardNumber));
 
         generatedCards.add(cardNumber);
-        
         const mm = month === 'rnd' ? getRandomMonth() : month;
         const yy = year === 'rnd' ? getRandomYear() : year;
         const cvv = getRandomCVV();
@@ -529,7 +567,6 @@ function generateCards() {
     }
 }
 
-// Funciones de copiado mejoradas
 function copyCard(card) {
     navigator.clipboard.writeText(card).then(() => {
         showNotification('Tarjeta copiada!');
@@ -541,17 +578,17 @@ function copyAllFormatted() {
         .map(span => span.textContent);
     
     if (!cards.length) {
-        showNotification('No hay tarjetas para copiar', 'error');
+        alert('No hay tarjetas para copiar');
         return;
     }
     
     const formattedText = cards.map(card => {
         const [cc, month, year, cvv] = card.split('|');
-        return `${cc}|${month}|${year}|${cvv} | Generated by Aeolous | .gg/aeolous`;
+        return `${cc}|${month}|${year}|${cvv} | Generated by Aeolus | .gg/aeolous`;
     }).join('\n');
     
     navigator.clipboard.writeText(formattedText).then(() => {
-        showNotification('CCs copiadas con formato!');
+        showNotification('CC\'s copiadas con formato!');
     });
 }
 
@@ -561,7 +598,7 @@ function copyAll() {
         .join('\n');
     
     if (!cards) {
-        showNotification('No hay tarjetas para copiar', 'error');
+        alert('No hay tarjetas para copiar');
         return;
     }
     
@@ -572,18 +609,6 @@ function copyAll() {
 
 function clearResults() {
     document.getElementById('results').innerHTML = '';
-    showNotification('Resultados limpiados');
-}
-
-function showNotification(message, type = 'success') {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle"></i>
-        <span>${message}</span>
-    `;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
 }
         </script>
     </body>
