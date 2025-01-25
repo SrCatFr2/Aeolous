@@ -5,8 +5,104 @@ const app = express();
 
 app.use(express.json());
 app.use(express.static('public'));
+// Servir faker desde node_modules
+app.use('/faker', express.static(path.join(__dirname, 'node_modules/@faker-js/faker/dist')));
 
-// Función de validación Luhn
+// Nueva configuraci贸n
+const COUNTRY_COORDINATES = {
+    'es': [{ lat: 40.4168, lng: -3.7038 }, { lat: 41.3851, lng: 2.1734 }],
+    'mx': [{ lat: 19.4326, lng: -99.1332 }, { lat: 20.6597, lng: -103.3496 }],
+    'ar': [{ lat: -34.6037, lng: -58.3816 }, { lat: -31.4201, lng: -64.1888 }],
+    'co': [{ lat: 4.7110, lng: -74.0721 }, { lat: 6.2442, lng: -75.5812 }],
+    'pe': [{ lat: -12.057481, lng: -77.036545 }, { lat: -11.867044, lng: -77.131302 }],
+    'uk': [{ lat: 51.5074, lng: -0.1278 }, { lat: 53.4808, lng: -2.2426 }],
+    'us': [{ lat: 40.7128, lng: -74.0060 }, { lat: 34.0522, lng: -118.2437 }]
+};
+
+const COUNTRY_NAMES = {
+    'es': 'España',
+    'mx': 'México',
+    'ar': 'Argentina',
+    'co': 'Colombia',
+    'pe': 'Perú',
+    'uk': 'Reino Unido',
+    'us': 'Estados Unidos'
+};
+
+async function getRandomAddress(country) {
+    const countryCode = country.toLowerCase();
+    const coords = COUNTRY_COORDINATES[countryCode] || COUNTRY_COORDINATES['co'];
+    const randomCity = coords[Math.floor(Math.random() * coords.length)];
+    
+    const lat = randomCity.lat + (Math.random() - 0.5) * 0.1;
+    const lng = randomCity.lng + (Math.random() - 0.5) * 0.1;
+
+    const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        { headers: { 'User-Agent': 'Aeolous Address Generator' } }
+    );
+    
+    const data = await response.json();
+    return data.address;
+}
+
+// Endpoint modificado
+app.post('/generate-addresses', async (req, res) => {
+    try {
+        const { country, count } = req.body;
+        const countryCode = country.toLowerCase();
+        const addresses = [];
+        const limit = Math.min(parseInt(count) || 1, 10);
+
+        for (let i = 0; i < limit; i++) {
+            try {
+                // Obtener datos de usuario
+                const userRes = await fetch('https://randomuser.me/api/');
+                const userData = await userRes.json();
+                const user = userData.results[0];
+                
+                // Generar direcci贸n
+                const addressData = await getRandomAddress(countryCode);
+                const address = {
+                    street: `${addressData.house_number || ''} ${addressData.road || ''}`.trim(),
+                    city: addressData.city || addressData.town || addressData.village || 'Ciudad Desconocida',
+                    state: addressData.state || addressData.region || 'Estado Desconocido',
+                    zipCode: addressData.postcode || '00000',
+                    country: COUNTRY_NAMES[countryCode] || 'Pa铆s Desconocido'
+                };
+
+                // Datos adicionales
+                const name = `${user.name.first} ${user.name.last}`;
+                const phone = `+${user.cell.replace(/\D/g, '')}`;
+
+                addresses.push({ ...address, name, phone, gender: user.gender });
+            } catch (error) {
+                console.error('Error generando direcci贸n:', error);
+                addresses.push({
+                    street: 'Calle Desconocida',
+                    city: 'Ciudad Desconocida',
+                    state: 'Estado Desconocido',
+                    zipCode: '00000',
+                    country: 'Pa铆s Desconocido',
+                    name: 'Nombre Desconocido',
+                    phone: '+000000000',
+                    gender: 'unknown'
+                });
+            }
+        }
+
+        res.json({ success: true, addresses });
+    } catch (error) {
+        console.error('Error general:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error al generar direcciones',
+            message: error.message 
+        });
+    }
+});
+
+// Funci贸n de validaci贸n Luhn
 function luhnCheck(cardNumber) {
     let sum = 0;
     let isEven = false;
@@ -31,7 +127,7 @@ function luhnCheck(cardNumber) {
     return sum % 10 === 0;
 }
 
-// Función para obtener el tipo de tarjeta
+// Funci贸n para obtener el tipo de tarjeta
 function getCardType(cardNumber) {
     const patterns = {
         visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
@@ -181,7 +277,7 @@ app.post('/api/pro/check', async (req, res) => {
 
                 await new Promise(r => setTimeout(r, 300));
                 
-                // Verificación más detallada del status
+                // Verificaci贸n m谩s detallada del status
                 const isLive = data.code === 1;
                 
                 return {
