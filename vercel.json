@@ -12,6 +12,11 @@
   ],
   "routes": [
     {
+      "src": "/generate-addresses",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
       "src": "/api/basic/check",
       "methods": ["POST"],
       "dest": "index.js"
