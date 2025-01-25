@@ -319,6 +319,55 @@
         grid-template-columns: 1fr;
     }
 }
+
+        /* Estilos para el generador de direcciones */
+        .address-generator {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+
+        .address-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .address-result {
+            background: var(--darker);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .address-card {
+            background: var(--dark);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .address-card p {
+            margin: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .address-card .copy-address {
+            align-self: flex-end;
+            background: var(--primary);
+            color: var(--white);
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            border: none;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
     <body>
@@ -371,7 +420,6 @@
                             <option value="2027">2027</option>
                             <option value="2028">2028</option>
                             <option value="2029">2029</option>
-                            <option value="2030">2030</option>
                         </select>
                     </div>
 
@@ -405,211 +453,338 @@
             <div class="results-panel">
                 <div class="results" id="results"></div>
             </div>
+
+            <!-- Generador de Direcciones -->
+            <div class="address-generator">
+                <h2 style="margin-bottom: 1.5rem;">Generador de Direcciones</h2>
+                <div class="address-controls">
+                    <div class="input-group">
+                        <label for="addressCountry">País</label>
+                        <select id="addressCountry" class="form-control">
+                            <option value="es">España</option>
+                            <option value="mx">México</option>
+                            <option value="ar">Argentina</option>
+                            <option value="co" selected>Colombia</option>
+                            <option value="pe">Perú</option>
+                            <option value="uk">Reino Unido</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="addressCount">Cantidad de Direcciones</label>
+                        <input type="number" id="addressCount" min="1" max="10" value="1" class="form-control">
+                    </div>
+                    <div class="input-group" style="display: flex; align-items: flex-end;">
+                        <button onclick="generateAddresses()" class="btn btn-primary" style="width: 100%;">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Generar Direcciones
+                        </button>
+                    </div>
+                </div>
+                <div id="addressResults" class="address-result"></div>
+            </div>
         </div>
 
         <script>
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
+            // Background Animation
+            const canvas = document.getElementById('bgCanvas');
+            const ctx = canvas.getContext('2d');
 
-function initCanvas() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-}
-
-window.addEventListener('resize', initCanvas);
-initCanvas();
-
-const particles = Array.from({length: 50}, () => ({
-    x: Math.random() * canvas.width,
-    y: Math.random() * canvas.height,
-    size: Math.random() * 2 + 1,
-    speedX: Math.random() * 2 - 1,
-    speedY: Math.random() * 2 - 1,
-    color: `rgba(79, 70, 229, ${Math.random() * 0.3})`
-}));
-
-function animate() {
-    requestAnimationFrame(animate);
-    ctx.fillStyle = 'rgba(11, 15, 26, 0.1)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    particles.forEach(p => {
-        p.x += p.speedX;
-        p.y += p.speedY;
-        if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
-        if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.fill();
-    });
-}
-
-animate();
-
-function generateLuhn(partial) {
-    var sum = 0;
-    var len = partial.length;
-    var parity = (len + 1) % 2;
-    
-    for (var i = len - 1; i >= 0; i--) {
-        var digit = parseInt(partial[i], 10);
-        
-        if (i % 2 === parity) {
-            digit *= 2;
-            if (digit > 9) {
-                digit -= 9;
+            function initCanvas() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
             }
-        }
-        sum += digit;
-    }
-    
-    var checksum = (10 - (sum % 10)) % 10;
-    return checksum;
-}
 
-function generateCard(base) {
-    let card = base.toLowerCase();
-    
-    while (card.length < 16) {
-        if (card.includes('x')) {
-            card = card.replace('x', Math.floor(Math.random() * 10));
-        } else {
-            card += Math.floor(Math.random() * 10);
-        }
-    }
-    
-    const partial = card.slice(0, -1);
-    const checkDigit = generateLuhn(partial);
-    return partial + checkDigit;
-}
+            window.addEventListener('resize', initCanvas);
+            initCanvas();
 
-function validateCard(cardNumber) {
-    var sum = 0;
-    var isEven = false;
-    
-    for (var i = cardNumber.length - 1; i >= 0; i--) {
-        var digit = parseInt(cardNumber[i], 10);
-        
-        if (isEven) {
-            digit *= 2;
-            if (digit > 9) {
-                digit -= 9;
+            const particles = Array.from({length: 50}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 1,
+                speedX: Math.random() * 2 - 1,
+                speedY: Math.random() * 2 - 1,
+                color: `rgba(79, 70, 229, ${Math.random() * 0.3})`
+            }));
+
+            function animate() {
+                requestAnimationFrame(animate);
+                ctx.fillStyle = 'rgba(11, 15, 26, 0.1)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                particles.forEach(p => {
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+
+                    if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                });
             }
-        }
-        
-        sum += digit;
-        isEven = !isEven;
-    }
-    
-    return sum % 10 === 0;
-}
 
-function getRandomMonth() {
-    return String(Math.floor(Math.random() * 12) + 1).padStart(2, '0');
-}
+            animate();
 
-function getRandomYear() {
-    return String(2024 + Math.floor(Math.random() * 7));
-}
+            // Generator Functions
+            function luhnCheck(cardNumber) {
+                let sum = 0;
+                let isEven = false;
+                
+                // Recorrer de derecha a izquierda
+                for (let i = cardNumber.length - 1; i >= 0; i--) {
+                    let digit = parseInt(cardNumber[i]);
 
-function getRandomCVV() {
-    return String(Math.floor(Math.random() * 900) + 100);
-}
+                    if (isEven) {
+                        digit *= 2;
+                        if (digit > 9) {
+                            digit -= 9;
+                        }
+                    }
 
-function showNotification(message) {
-    const notification = document.createElement('div');
-    notification.className = 'notification';
-    notification.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        <span>${message}</span>
-    `;
-    document.body.appendChild(notification);
-    setTimeout(() => notification.remove(), 3000);
-}
+                    sum += digit;
+                    isEven = !isEven;
+                }
 
-function generateCards() {
-    const base = document.getElementById('bin').value;
-    const month = document.getElementById('month').value;
-    const year = document.getElementById('year').value;
-    const quantity = parseInt(document.getElementById('quantity').value);
-    const results = document.getElementById('results');
+                return sum % 10 === 0;
+            }
 
-    if (!base) {
-        alert('Ingresa un BIN o base');
-        return;
-    }
+            function generateLuhnNumber(partialNumber) {
+                let sum = 0;
+                let isEven = true; // Comenzamos en true porque el checksum será la última posición
 
-    results.innerHTML = '';
-    const generatedCards = new Set();
+                // Calcular suma para el número parcial
+                for (let i = partialNumber.length - 1; i >= 0; i--) {
+                    let digit = parseInt(partialNumber[i]);
 
-    for (let i = 0; i < quantity; i++) {
-        let cardNumber;
-        do {
-            cardNumber = generateCard(base);
-        } while (generatedCards.has(cardNumber));
+                    if (isEven) {
+                        digit *= 2;
+                        if (digit > 9) {
+                            digit -= 9;
+                        }
+                    }
 
-        generatedCards.add(cardNumber);
-        const mm = month === 'rnd' ? getRandomMonth() : month;
-        const yy = year === 'rnd' ? getRandomYear() : year;
-        const cvv = getRandomCVV();
-        
-        const card = `${cardNumber}|${mm}|${yy}|${cvv}`;
-        
-        const div = document.createElement('div');
-        div.className = 'card-item';
-        div.innerHTML = `
-            <span>${card}</span>
-            <button class="copy-btn" onclick="copyCard('${card}')">
-                <i class="fas fa-copy"></i>
-            </button>
-        `;
-        results.appendChild(div);
-    }
-}
+                    sum += digit;
+                    isEven = !isEven;
+                }
 
-function copyCard(card) {
-    navigator.clipboard.writeText(card).then(() => {
-        showNotification('Tarjeta copiada!');
-    });
-}
+                // Calcular dígito de verificación
+                const checksum = (10 - (sum % 10)) % 10;
+                return partialNumber + checksum;
+            }
 
-function copyAllFormatted() {
-    const cards = Array.from(document.querySelectorAll('.card-item span'))
-        .map(span => span.textContent);
-    
-    if (!cards.length) {
-        alert('No hay tarjetas para copiar');
-        return;
-    }
-    
-    const formattedText = cards.map(card => {
-        const [cc, month, year, cvv] = card.split('|');
-        return `${cc}|${month}|${year}|${cvv} | Generated by Aeolus | .gg/aeolous`;
-    }).join('\n');
-    
-    navigator.clipboard.writeText(formattedText).then(() => {
-        showNotification('CC\'s copiadas con formato!');
-    });
-}
+            function generateCard(bin) {
+                // Validar el formato del BIN
+                if (!/^[0-9x]+$/i.test(bin)) {
+                    throw new Error('BIN inválido: solo se permiten números y "x"');
+                }
 
-function copyAll() {
-    const cards = Array.from(document.querySelectorAll('.card-item span'))
-        .map(span => span.textContent)
-        .join('\n');
-    
-    if (!cards) {
-        alert('No hay tarjetas para copiar');
-        return;
-    }
-    
-    navigator.clipboard.writeText(cards).then(() => {
-        showNotification('Texto simple copiado!');
-    });
-}
+                if (bin.length !== 16) {
+                    throw new Error('BIN inválido: debe tener exactamente 16 caracteres');
+                }
 
-function clearResults() {
-    document.getElementById('results').innerHTML = '';
-}
+                // Generar número base reemplazando las 'x' con números aleatorios
+                let cardNumber = '';
+                for (let i = 0; i < bin.length - 1; i++) { // -1 porque el último dígito será el de Luhn
+                    if (bin[i].toLowerCase() === 'x') {
+                        cardNumber += Math.floor(Math.random() * 10);
+                    } else {
+                        cardNumber += bin[i];
+                    }
+                }
+
+                // Aplicar algoritmo de Luhn para el último dígito
+                return generateLuhnNumber(cardNumber);
+            }
+
+            function generateExpDate() {
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear();
+                const currentMonth = currentDate.getMonth() + 1;
+
+                // Generar año aleatorio entre el actual y 5 años después
+                const year = currentYear + Math.floor(Math.random() * 5);
+                
+                // Si es el año actual, asegurar que el mes sea posterior al actual
+                let month;
+                if (year === currentYear) {
+                    month = currentMonth + Math.floor(Math.random() * (12 - currentMonth + 1));
+                } else {
+                    month = Math.floor(Math.random() * 12) + 1;
+                }
+
+                return {
+                    month: month.toString().padStart(2, '0'),
+                    year: year.toString().slice(-2)
+                };
+            }
+
+            function generateCVV() {
+                return Math.floor(Math.random() * 900 + 100).toString();
+            }
+
+            function showNotification(message) {
+                const notification = document.createElement('div');
+                notification.className = 'notification';
+                notification.innerHTML = `
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                `;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+
+            function generateCards() {
+                const bin = document.getElementById('bin').value.replace(/\s/g, '');
+                const monthSelect = document.getElementById('month').value;
+                const yearSelect = document.getElementById('year').value;
+                const quantity = parseInt(document.getElementById('quantity').value);
+                
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = '';
+
+                for (let i = 0; i < quantity; i++) {
+                    try {
+                        const cardNumber = generateCard(bin);
+                        const exp = monthSelect === 'rnd' || yearSelect === 'rnd' ? 
+                            generateExpDate() : 
+                            {
+                                month: monthSelect,
+                                year: yearSelect.slice(-2)
+                            };
+                        const cvv = generateCVV();
+                        
+                        const cardEntry = document.createElement('div');
+                        cardEntry.className = 'card-item';
+                        cardEntry.innerHTML = `
+                            <span>${cardNumber}|${exp.month}|${exp.year}|${cvv}</span>
+                            <button class="copy-btn" onclick="copyCard('${cardNumber}|${exp.month}|${exp.year}|${cvv}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        `;
+                        resultsDiv.appendChild(cardEntry);
+                    } catch (error) {
+                        console.error('Error generando tarjeta:', error);
+                    }
+                }
+            }
+
+            function copyCard(card) {
+                navigator.clipboard.writeText(card).then(() => {
+                    showNotification('¡Tarjeta copiada!');
+                });
+            }
+
+            function copyAllFormatted() {
+                const cards = Array.from(document.querySelectorAll('#results .card-item span'))
+                    .map(span => span.textContent);
+                
+                if (!cards.length) {
+                    alert('No hay tarjetas para copiar');
+                    return;
+                }
+                
+                const formattedText = cards.map(card => {
+                    return `${card} | Generated by Aeolous | .gg/aeolous`;
+                }).join('\n');
+                
+                navigator.clipboard.writeText(formattedText).then(() => {
+                    showNotification('Tarjetas copiadas con formato!');
+                });
+            }
+
+            function copyAll() {
+                const cards = Array.from(document.querySelectorAll('.card-item span'))
+                    .map(span => span.textContent)
+                    .join('\n');
+                
+                if (!cards) {
+                    alert('No hay direcciones para copiar');
+                    return;
+                }
+                
+                navigator.clipboard.writeText(cards).then(() => {
+                    showNotification('Texto simple copiado!');
+                });
+            }
+
+            function clearResults() {
+                document.getElementById('results').innerHTML = '';
+            }
+
+            // Función para generar direcciones
+            async function generateAddresses() {
+                try {
+                    const count = Math.min(parseInt(document.getElementById('addressCount').value), 10);
+                    if (isNaN(count) || count < 1) {
+                        throw new Error('Cantidad inválida (1-10)');
+                    }
+                    
+                    const country = document.getElementById('addressCountry').value;
+                    
+                    const response = await fetch('/generate-addresses', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ country, count })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!data.success) {
+                        throw new Error(data.message || 'Error al generar direcciones');
+                    }
+
+                    const resultsContainer = document.getElementById('addressResults');
+                    resultsContainer.innerHTML = '';
+
+                    data.addresses.forEach(address => {
+                        const card = document.createElement('div');
+                        card.className = 'address-card';
+                        
+                        const addressHTML = `
+                            <p><strong>Nombre:</strong> ${address.name}</p>
+                            <p><strong>Género:</strong> ${address.gender}</p>
+                            <p><strong>Teléfono:</strong> ${address.phone}</p>
+                            <p><strong>Calle:</strong> ${address.street}</p>
+                            <p><strong>Ciudad:</strong> ${address.city}</p>
+                            <p><strong>Estado/Provincia:</strong> ${address.state}</p>
+                            <p><strong>Código Postal:</strong> ${address.zipCode}</p>
+                            <p><strong>País:</strong> ${address.country}</p>
+                            <button class="copy-address" onclick="copyAddress(this)">
+                                <i class="fas fa-copy"></i> Copiar
+                            </button>
+                        `;
+                        
+                        card.innerHTML = addressHTML;
+                        resultsContainer.appendChild(card);
+                    });
+                } catch (error) {
+                    console.error('Error:', error);
+                    showNotification(error.message || 'Error al generar direcciones');
+                }
+            }
+
+            // Función para copiar dirección
+            function copyAddress(button) {
+                const card = button.parentElement;
+                const addressText = Array.from(card.querySelectorAll('p'))
+                    .map(p => p.textContent)
+                    .join('\n');
+                
+                navigator.clipboard.writeText(addressText).then(() => {
+                    showNotification('¡Dirección copiada al portapapeles!');
+                    button.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
+                    setTimeout(() => {
+                        button.innerHTML = '<i class="fas fa-copy"></i> Copiar';
+                    }, 2000);
+                }).catch(err => {
+                    console.error('Error al copiar:', err);
+                    showNotification('Error al copiar la dirección');
+                });
+            }
         </script>
     </body>
     </html>
