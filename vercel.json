@@ -32,12 +32,36 @@
       "dest": "index.js"
     },
     {
+      "src": "/api/extrapolacion/basica",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/extrapolacion/similitud",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/extrapolacion/logica",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
+      "src": "/api/extrapolacion/sofia",
+      "methods": ["POST"],
+      "dest": "index.js"
+    },
+    {
       "src": "/api/(.*)",
       "dest": "/api/$1"
     },
     {
       "src": "/gen(\\.html)?",
       "dest": "/public/gen.html"
+    },
+    {
+      "src": "/extrapolacion(\\.html)?",
+      "dest": "/public/extrapolacion.html"
     },
     {
       "src": "/(styles\\.min\\.css|script\\.min\\.js)",
