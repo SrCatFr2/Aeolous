@@ -420,9 +420,6 @@
                             <option value="2027">2027</option>
                             <option value="2028">2028</option>
                             <option value="2029">2029</option>
-                            <option value="2030">2030</option>
-                            <option value="2031">2031</option>
-                            <option value="2032">2032</option>
                         </select>
                     </div>
 
@@ -578,27 +575,69 @@
             }
 
             function generateCard(bin) {
+                // Remover espacios inicialmente para procesar
+                let cleanBin = bin.replace(/\s/g, '');
+                
+                // Detectar si hay x's al final
+                const hasXPattern = /x+$/i.test(cleanBin);
+                
+                // Si no hay patrón de x's al final, buscar la última ocurrencia de x's
+                if (!hasXPattern) {
+                    const lastXIndex = cleanBin.toLowerCase().lastIndexOf('x');
+                    if (lastXIndex !== -1) {
+                        // Convertir todos los caracteres después de la última x en x's
+                        cleanBin = cleanBin.substring(0, lastXIndex + 1) + 'x'.repeat(15 - lastXIndex);
+                    }
+                }
+
                 // Validar el formato del BIN
-                if (!/^[0-9x]+$/i.test(bin)) {
+                if (!/^[0-9x]+$/i.test(cleanBin)) {
                     throw new Error('BIN inválido: solo se permiten números y "x"');
                 }
 
-                if (bin.length !== 16) {
-                    throw new Error('BIN inválido: debe tener exactamente 16 caracteres');
+                // Asegurar longitud de 16 dígitos
+                if (cleanBin.length > 16) {
+                    cleanBin = cleanBin.slice(0, 16);
+                } else if (cleanBin.length < 16) {
+                    cleanBin = cleanBin.padEnd(16, 'x');
                 }
 
                 // Generar número base reemplazando las 'x' con números aleatorios
                 let cardNumber = '';
-                for (let i = 0; i < bin.length - 1; i++) { // -1 porque el último dígito será el de Luhn
-                    if (bin[i].toLowerCase() === 'x') {
+                for (let i = 0; i < cleanBin.length - 1; i++) {
+                    if (cleanBin[i].toLowerCase() === 'x') {
                         cardNumber += Math.floor(Math.random() * 10);
                     } else {
-                        cardNumber += bin[i];
+                        cardNumber += cleanBin[i];
                     }
                 }
 
                 // Aplicar algoritmo de Luhn para el último dígito
-                return generateLuhnNumber(cardNumber);
+                const generatedNumber = generateLuhnNumber(cardNumber);
+
+                // Restaurar el formato de espacios si el input original los tenía
+                if (bin.includes(' ')) {
+                    const spacing = bin.split('').map(char => char === ' ' ? ' ' : 'X').join('');
+                    let formattedNumber = '';
+                    let genIndex = 0;
+                    
+                    for (let i = 0; i < spacing.length && genIndex < generatedNumber.length; i++) {
+                        if (spacing[i] === ' ') {
+                            formattedNumber += ' ';
+                        } else {
+                            formattedNumber += generatedNumber[genIndex++];
+                        }
+                    }
+                    
+                    // Agregar cualquier dígito restante
+                    if (genIndex < generatedNumber.length) {
+                        formattedNumber += generatedNumber.slice(genIndex);
+                    }
+                    
+                    return formattedNumber;
+                }
+
+                return generatedNumber;
             }
 
             function generateExpDate() {
