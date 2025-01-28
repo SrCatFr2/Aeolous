@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <title>Aeolous Extrapolador</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.min.css">
+    <style>
+        .method-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .method-btn {
+            padding: 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--dark);
+            color: var(--white);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .method-btn.active {
+            background: var(--primary);
+        }
+
+        .method-btn:hover {
+            transform: translateY(-2px);
+            background: var(--primary);
+        }
+
+        .input-container {
+            display: none;
+        }
+
+        .input-container.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--light-gray);
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--darker);
+            border: 1px solid var(--gray);
+            border-radius: 0.5rem;
+            color: var(--white);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .result {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: var(--darker);
+            border-radius: 0.5rem;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--white);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn i {
+            font-size: 1.1rem;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            padding: 1rem 2rem;
+            background: var(--success);
+            color: var(--white);
+            border-radius: 0.5rem;
+            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+            z-index: 1000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            to { transform: translateX(100%); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bgCanvas"></canvas>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <i class="fas fa-calculator"></i>
+                <h1>Aeolous Extrapolador</h1>
+            </div>
+            <a href="/chk.html" class="header-btn">
+                <i class="fas fa-arrow-left"></i>
+                Volver al Checker
+            </a>
+        </header>
+
+        <div class="method-selector">
+            <button class="method-btn" data-method="basico">
+                <i class="fas fa-calculator"></i>
+                Método Básico
+            </button>
+            <button class="method-btn" data-method="similitud">
+                <i class="fas fa-sync-alt"></i>
+                Método Similitud
+            </button>
+            <button class="method-btn" data-method="logica">
+                <i class="fas fa-code"></i>
+                Método Lógica
+            </button>
+            <button class="method-btn" data-method="sofia">
+                <i class="fas fa-star"></i>
+                Método Sofia
+            </button>
+        </div>
+
+        <div class="input-container" id="basico">
+            <div class="input-group">
+                <label>Tarjeta de Crédito</label>
+                <input type="text" placeholder="4915110191768499" maxlength="16">
+            </div>
+            <button class="btn btn-primary" onclick="extrapolacionBasica()">
+                <i class="fas fa-cog"></i>
+                Extrapolar
+            </button>
+            <div class="result"></div>
+        </div>
+
+        <div class="input-container" id="similitud">
+            <div class="input-group">
+                <label>Primera Tarjeta</label>
+                <input type="text" placeholder="4594196140045857" maxlength="16">
+            </div>
+            <div class="input-group">
+                <label>Segunda Tarjeta</label>
+                <input type="text" placeholder="4594196140684838" maxlength="16">
+            </div>
+            <button class="btn btn-primary" onclick="extrapolacionSimilitud()">
+                <i class="fas fa-cog"></i>
+                Extrapolar
+            </button>
+            <div class="result"></div>
+        </div>
+
+        <div class="input-container" id="logica">
+            <div class="input-group">
+                <label>Tarjeta de Crédito</label>
+                <input type="text" placeholder="4915110176928790" maxlength="16">
+            </div>
+            <button class="btn btn-primary" onclick="extrapolacionLogica()">
+                <i class="fas fa-cog"></i>
+                Extrapolar
+            </button>
+            <div class="result"></div>
+        </div>
+
+        <div class="input-container" id="sofia">
+            <div class="input-group">
+                <label>Primera Tarjeta</label>
+                <input type="text" placeholder="4915110176928790" maxlength="16">
+            </div>
+            <div class="input-group">
+                <label>Segunda Tarjeta</label>
+                <input type="text" placeholder="4915110191768499" maxlength="16">
+            </div>
+            <button class="btn btn-primary" onclick="extrapolacionSofia()">
+                <i class="fas fa-cog"></i>
+                Extrapolar
+            </button>
+            <div class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Background Animation
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function initCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', initCanvas);
+        initCanvas();
+
+        const particles = Array.from({length: 50}, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speedX: Math.random() * 2 - 1,
+            speedY: Math.random() * 2 - 1,
+            color: `rgba(79, 70, 229, ${Math.random() * 0.3})`
+        }));
+
+        function animate() {
+            requestAnimationFrame(animate);
+            ctx.fillStyle = 'rgba(11, 15, 26, 0.1)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                if(p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                if(p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+        }
+
+        animate();
+
+        // UI Functions
+        const methodBtns = document.querySelectorAll('.method-btn');
+        const inputContainers = document.querySelectorAll('.input-container');
+
+        methodBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const method = btn.dataset.method;
+                
+                methodBtns.forEach(b => b.classList.remove('active'));
+                inputContainers.forEach(c => c.classList.remove('active'));
+                
+                btn.classList.add('active');
+                document.getElementById(method).classList.add('active');
+            });
+        });
+
+        // Mostrar el primer método por defecto
+        methodBtns[0].click();
+
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        // Funciones de extrapolación
+        async function extrapolacionBasica() {
+            const container = document.getElementById('basico');
+            const input = container.querySelector('input');
+            const result = container.querySelector('.result');
+            
+            try {
+                const response = await fetch('/api/extrapolacion/basica', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cc: input.value })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    result.textContent = data.resultado;
+                    showNotification('¡Extrapolación exitosa!');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function extrapolacionSimilitud() {
+            const container = document.getElementById('similitud');
+            const inputs = container.querySelectorAll('input');
+            const result = container.querySelector('.result');
+            
+            try {
+                const response = await fetch('/api/extrapolacion/similitud', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        cc1: inputs[0].value,
+                        cc2: inputs[1].value
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    result.textContent = data.resultado;
+                    showNotification('¡Extrapolación exitosa!');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function extrapolacionLogica() {
+            const container = document.getElementById('logica');
+            const input = container.querySelector('input');
+            const result = container.querySelector('.result');
+            
+            try {
+                const response = await fetch('/api/extrapolacion/logica', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cc: input.value })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    result.textContent = data.resultado;
+                    showNotification('¡Extrapolación exitosa!');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function extrapolacionSofia() {
+            const container = document.getElementById('sofia');
+            const inputs = container.querySelectorAll('input');
+            const result = container.querySelector('.result');
+            
+            try {
+                const response = await fetch('/api/extrapolacion/sofia', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        cc1: inputs[0].value,
+                        cc2: inputs[1].value
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    result.textContent = data.resultado;
+                    showNotification('¡Extrapolación exitosa!');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                result.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 
